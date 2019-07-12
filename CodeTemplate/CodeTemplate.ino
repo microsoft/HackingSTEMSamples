@@ -10,7 +10,7 @@
 // 
 // Comments, contributions, suggestions, bug reports, and feature requests 
 // are welcome! For source code and bug reports see: 
-// http://github.com/[TODO: github path to Hacking STEM] 
+// https://github.com/microsoft/HackingSTEMSamples
 // 
 // Copyright 2019, Adi Azulay Microsoft EDU Workshop - HackingSTEM 
 // MIT License terms detailed in LICENSE.txt 
@@ -76,15 +76,13 @@ void processSensors()
 void sendDataToSerial()
 {
   const int kSerialInterval = 50;   // Interval between serial writes
-  unsigned long serialPreviousTime; // Timestamp to track serial interval
+  static unsigned long serialPreviousTime; // Timestamp to track serial interval
 
   // Enter into this only when serial interval has elapsed
   if((millis() - serialPreviousTime) > kSerialInterval) 
   {
     serialPreviousTime = millis(); // Reset serial interval timestamp
     
-    // Serial.print(); //This line is reserved for command variables
-    Serial.print(kDelimiter);
     // Send data out separated by a comma (kDelimiter)
     // Repeat next 2 lines of code for each variable sent:
     Serial.print(exampleVariable);
