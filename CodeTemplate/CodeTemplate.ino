@@ -48,7 +48,7 @@ void loop()
   processIncomingSerial();
 
   // Check if specific string was sent from Excel
-  if ( strcmp ("Foo", arr[0]) == 0){ // Compares STR1 to STR2 returns 0 if true.
+  if ( strcmp ("Foo", arr[0]) == 0){ // Compares STR1 (Foo) to STR2 (arr[0]) returns 0 if true.
       Serial.println("working");
   }
 
@@ -114,6 +114,8 @@ void processIncomingSerial()
 char* GetSerialData()
 {
   char rawData[64];
+  memset(rawData, 0, sizeof(rawData));
+
   while (Serial.available()){
     Serial.readBytesUntil('\n', rawData, 64); //Read every byte in Serial buffer until line end or 64 bytes
   }
