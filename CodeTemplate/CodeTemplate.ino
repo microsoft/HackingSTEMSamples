@@ -1,15 +1,10 @@
 // ----------------------------------------------------------------------------
-// [Title of project] for use with the [Lesson Plan Title] lesson plan 
-// available from Microsoft Education Workshop at http://aka.ms/hackingSTEM 
-// 
 // This project uses an Arduino UNO microcontroller board. More information can
 // be found by visiting the Arduino website: 
 // https://www.arduino.cc/en/main/arduinoBoardUno 
 //  
-// [Several sentences describing code function in accessible verbiage] 
-// 
-// Comments, contributions, suggestions, bug reports, and feature requests 
-// are welcome! For source code and bug reports see: 
+// Comments, contributions, suggestions, bug reports, and feature request
+// are welcome! For source code and bug reports see:
 // https://github.com/microsoft/HackingSTEMSamples
 // 
 // Copyright 2019, Adi Azulay Microsoft EDU Workshop - HackingSTEM 
@@ -17,23 +12,28 @@
 // ----------------------------------------------------------------------------
 
 // Program variables ----------------------------------------------------------
-int exampleVariable = 0;
+int sensorValue = 0;
 int sensorPin = A0;
 
-// Excel variables ------------------------------------------------------------
-float incomingExcelFloat = 0;
-int incomingExcelInteger = 0;
+// Incoming serial variables --------------------------------------------------
+float incomingSerialFloat = 0;
+int incomingSerialInt = 0;
 
 // Serial data variables ------------------------------------------------------
-const byte kNumberOfChannelsFromExcel = 3; //Number of channels coming in from Excel
+const byte kNumberOfDataColumns = 3; //Number of columns from Data Streamer
 // IMPORTANT: This must be equal to the number of channels set in Data Streamer
 
-const char kDelimiter = ',';    // Data Streamer expects a comma delimeter
+#define DELIMETER ',' // Data Streamer expects a comma delimeter
+#define SERIALINTERVAL 50 // Interval between serial writes
 
-char* arr[kNumberOfChannelsFromExcel]; //Array of data coming in from Excel
+char* incomingData[kNumberOfDataColumns]; // Array to store incoming data
+
+// Uncomment the line below to use comma verification
+//#define CheckCommaCount
 
 // SETUP ----------------------------------------------------------------------
-void setup() {
+void setup()
+{
   // Initializations occur here
   Serial.begin(9600);
 }
@@ -41,123 +41,125 @@ void setup() {
 // START OF MAIN LOOP --------------------------------------------------------- 
 void loop()
 {
-  // Process sensors
-  processSensors();
+  sensorValue = analogRead(sensorPin);
 
-  // Read Excel variables from serial port (Data Streamer)
-  processIncomingSerial();
+  // Read variables from serial port (Data Streamer)
+  processIncomingSerial(); // This method is defined below
 
-  // Check if specific string was sent from Excel
-  if ( strcmp ("Foo", arr[0]) == 0){ // Compares STR1 (Foo) to STR2 (arr[0]) returns 0 if true.
-      Serial.println("working");
+  // Check if specific string was recvied from serial port (Data Streamer)
+  if (strcmp ("Foo", incomingData[0]) == 0)
+  // Compares STR1 (Foo) to STR2 (incomingData[0]) returns 0 when true.
+  {
+    Serial.println("Recieved string: Foo");
   }
 
   // Convert incoming string to interger
-  incomingExcelInteger = atoi(arr[1]);
+  incomingSerialInt = atoi(incomingData[1]);
 
   // Convert incoming string to float
-  incomingExcelFloat = atof(arr[2]);
+  incomingSerialFloat = atof(incomingData[2]);
 
-  // Process and send data to Excel via serial port (Data Streamer)
-  sendDataToSerial();
+  // Process and send data to serial port (Data Streamer)
+  sendDataToSerial(); // This method is defined below
 
 }
-
-// SENSOR INPUT CODE-----------------------------------------------------------
-void processSensors() 
-{
-  // Add sensor processing code here
-  exampleVariable = analogRead( sensorPin );
-}
-
-// Add any specialized methods and processing code here
 
 // OUTGOING SERIAL DATA PROCESSING CODE----------------------------------------
 void sendDataToSerial()
 {
-  const int kSerialInterval = 50;   // Interval between serial writes
-  static unsigned long serialPreviousTime; // Timestamp to track serial interval
+  // Timestamp to track serial interval
+  static unsigned long serialPreviousTime;
 
   // Enter into this only when serial interval has elapsed
-  if((millis() - serialPreviousTime) > kSerialInterval) 
+  if((millis() - serialPreviousTime) > SERIALINTERVAL) 
   {
     serialPreviousTime = millis(); // Reset serial interval timestamp
     
-    // Send data out separated by a comma (kDelimiter)
+    // Send data out separated by a comma (DELIMETER)
     // Repeat next 2 lines of code for each variable sent:
-    Serial.print(exampleVariable);
-    Serial.print(kDelimiter);
+    Serial.print(sensorValue);
+    Serial.print(DELIMETER);
     
-    // Example test for incoming Excel variables  
-    Serial.print(incomingExcelInteger);
-    Serial.print(kDelimiter);
+    // Echos back the variable that was read from serial. You can use this to
+    // validiate that the correct variables are being recived.
+    Serial.print(incomingSerialInt);
+    Serial.print(DELIMETER);
 
-    Serial.print(incomingExcelFloat, 4); // second parameter = decimal places
+    Serial.print(incomingSerialFloat, 4); // Print float with 4 decimal places
     
     Serial.println(); // Add final line ending character only once
   }
 }
 
 //-----------------------------------------------------------------------------
-// DO NOT EDIT ANYTHING BELOW THIS LINE
+// The code below here contains the methods used to communicate and parse data 
+// from Data Streamer. Editing anything below this line may cause bugs when 
+// sending or receiving data from Data Streamer.
 //-----------------------------------------------------------------------------
 
 // INCOMING SERIAL DATA PROCESSING CODE----------------------------------------
 void processIncomingSerial()
 {
   if(Serial.available()){
-    parseData(GetSerialData());
+    parseData(getSerialData());
   }
 }
 
 // Gathers bytes from serial port to build inputString
-char* GetSerialData()
+char* getSerialData()
 {
   char rawData[64];
   memset(rawData, 0, sizeof(rawData));
 
   while (Serial.available()){
-    Serial.readBytesUntil('\n', rawData, 64); //Read every byte in Serial buffer until line end or 64 bytes
+    Serial.readBytesUntil('\n', rawData, 64); 
+    //Read every byte in Serial buffer until line end or 64 bytes
   }
 
   static char inputString[64]; // Create a char array to store incoming data
-  // Comment the three lines below if using comma verification
-  memset(inputString, 0, sizeof(inputString)); // Clear the memory from a pervious reading
+
+  #ifndef CheckCommaCount
+  // Clear the memory from a pervious reading
+  memset(inputString, 0, sizeof(inputString));
   strcpy (inputString, rawData);
   return inputString;
+  #endif
 
-  //---Code Below this here can be used to verify that the string recieved is 
-  // well formed and no data packets were lost. It counts the number of commas 
-  // recived and compares it to the number of commas expceted. This code is 
-  // commented out since packets rarely get lost in most applications. If you 
-  // would like to use this to verification comment out lines above, and 
-  // uncomment the code below.
+  #ifdef CheckCommaCount
+  // Code Below here is used to verify that the string received is well-formed 
+  // and no data packets were lost. It counts the number of commas received and
+  // compares it to the number of commas expected. This code is not need for 
+  // most applications since packets rarely get lost. If you would like to use 
+  // this to verification define the CheckCommaCount variable at the start of 
+  // the program. 
 
-  // int count = 0;
-  // for (int i = 0; i < sizeof(rawData); i++){
-  //   if (rawData[i] == ','){
-  //     count++;
-  //   }
-  // }
+  int count = 0;
+  for (int i = 0; i < sizeof(rawData); i++){
+    if (rawData[i] == ','){
+      count++;
+    }
+  }
 
-  // if (count != kNumberOfChannelsFromExcel-1){
-  //   return NULL;
-  // } else {
-  //   memset(inputString, 0, sizeof(inputString)); // Clear the memory from a pervious reading
-  //   strcpy (inputString, rawData);
-  //   return inputString;
-  // }  
+  if (count != kNumberOfDataColumns-1){
+    return NULL;
+  } else {
+    // Clear the memory from a pervious reading
+    memset(inputString, 0, sizeof(inputString));
+    strcpy (inputString, rawData);
+    return inputString;
+  }
+  #endif
 }
 
 // Seperate the data at each delimeter
 void parseData(char data[])
 {
   if (data != NULL){
-    Serial.println(data);
-    char *token = strtok(data, ","); // Find the first delimeter and return the token before it
+    // Find the first delimeter and return the token before it
+    char *token = strtok(data, ",");
     int index = 0; // Index to track storage in the array
-    while (token != NULL){ // Char* strings terminate w/ a Null character. We'll keep running the command until we hit it
-      arr[index] = token; // Assign the token to an array
+    while (token != NULL){
+      incomingData[index] = token; // Assign the token to an array
       token = strtok(NULL, ","); // Conintue to the next delimeter
       index++; // incremenet index to store next value
     }
